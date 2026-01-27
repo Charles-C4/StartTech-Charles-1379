@@ -2,13 +2,17 @@ name: Frontend CI/CD
 
 on:
   push:
-    paths:
-      - 'frontend/**' # Only runs when you change the frontend
+    paths: ['frontend/**']
     branches: [ main ]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # This tells the robot to start every "run" step inside the frontend folder
+    defaults:
+      run:
+        working-directory: ./frontend 
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -19,12 +23,12 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: cd frontend && npm install
+        run: npm install
 
       - name: Build React App
-        run: cd frontend && npm run build
+        run: npm run build
         env:
-          VITE_API_BASE_URL: ${{ secrets.PROD_API_URL }} # Points React to your AWS ALB
+          VITE_API_BASE_URL: ${{ secrets.PROD_API_URL }}
 
       - name: Deploy to S3
         uses: jakejarvis/s3-sync-action@master
@@ -34,15 +38,5 @@ jobs:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'us-east-1' # Change to your region
-          SOURCE_DIR: 'frontend/dist' # Vite builds to 'dist', standard React to 'build'
-
-      - name: Invalidate CloudFront
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} \
-            --paths "/*"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
+          AWS_REGION: 'us-east-1'
+          SOURCE_DIR: 'dist' # Note: we removed 'frontend/' because working-directory handles it
