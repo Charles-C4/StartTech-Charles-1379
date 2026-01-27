@@ -40,3 +40,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'us-east-1'
           SOURCE_DIR: 'frontend/dist' # Note: we removed 'frontend/' because working-directory handles it
+          # Manual trigger to fix dist path - Jan 27 2026
