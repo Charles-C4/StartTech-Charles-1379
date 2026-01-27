@@ -13,7 +13,7 @@ type Config struct {
 	DBName             string   `mapstructure:"DB_NAME"`
 	JWTSecretKey       string   `mapstructure:"JWT_SECRET_KEY"`
 	JWTExpirationHours int      `mapstructure:"JWT_EXPIRATION_HOURS"`
-	EnableCache        bool     `mapstructure:"ENABLE_CACHE"`
+	EnableCache         bool     `mapstructure:"ENABLE_CACHE"`
 	RedisAddr          string   `mapstructure:"REDIS_ADDR"`
 	RedisPassword      string   `mapstructure:"REDIS_PASSWORD"`
 	LogLevel           string   `mapstructure:"LOG_LEVEL"`
@@ -28,16 +28,16 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
+	
+	viper.BindEnv("PORT")
 
+
+	// This allows Viper to read from OS Environment Variables
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	// Set default values
-	viper.SetDefault("PORT", "8080")
-	viper.SetDefault("ENABLE_CACHE", false)
-	viper.SetDefault("JWT_EXPIRATION_HOURS", 72)
-	viper.SetDefault("COOKIE_DOMAINS", []string{"localhost"})
-	viper.SetDefault("SECURE_COOKIE", false)
-	viper.SetDefault("ALLOWED_ORIGINS", []string{"http://localhost:5173"})
+	// Explicitly bind MONGO_URI to ensure it's picked up from Docker/Atlas
+	viper.BindEnv("MONGO_URI")
 
 	err = viper.ReadInConfig()
 	if err != nil {
@@ -51,12 +51,11 @@ func LoadConfig(path string) (config Config, err error) {
 		return
 	}
 
-	// Manually handle comma-separated strings for slices if viper didn't split them
+	// Handle comma-separated slices for CORS and Cookies
 	if allowedOrigins := viper.GetString("ALLOWED_ORIGINS"); allowedOrigins != "" {
 		parts := strings.Split(allowedOrigins, ",")
 		var cleaned []string
 		for _, p := range parts {
-			// Trim spaces and quotes
 			trimmed := strings.TrimSpace(p)
 			trimmed = strings.Trim(trimmed, "\"'")
 			if trimmed != "" {
@@ -70,7 +69,6 @@ func LoadConfig(path string) (config Config, err error) {
 		parts := strings.Split(cookieDomains, ",")
 		var cleaned []string
 		for _, p := range parts {
-			// Trim spaces and quotes
 			trimmed := strings.TrimSpace(p)
 			trimmed = strings.Trim(trimmed, "\"'")
 			if trimmed != "" {
