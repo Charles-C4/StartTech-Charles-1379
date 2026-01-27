@@ -1,19 +1,13 @@
-#Deploy Fix v3
 name: Frontend CI/CD
 
 on:
   push:
-    paths: ['frontend/**']
     branches: [ main ]
+    # We removed the path filter for now to ensure this triggers
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    # This tells the robot to start every "run" step inside the frontend folder
-    defaults:
-      run:
-        working-directory: ./frontend 
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -23,11 +17,12 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Dependencies
-        run: npm install
-
       - name: Build React App
-        run: npm run build
+        # We manually CD into frontend so we know exactly where we are
+        run: |
+          cd frontend
+          npm install
+          npm run build
         env:
           VITE_API_BASE_URL: ${{ secrets.PROD_API_URL }}
 
@@ -40,5 +35,5 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'us-east-1'
-          SOURCE_DIR: 'frontend/dist' # Note: we removed 'frontend/' because working-directory handles it
-          # Manual trigger to fix dist path - Jan 27 2026
+          # This is the crucial line: it tells the robot the files are inside frontend/dist
+          SOURCE_DIR: 'frontend/dist'
