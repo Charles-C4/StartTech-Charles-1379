@@ -34,3 +34,8 @@ jobs:
           # Pointing to the backend subdirectory for the build context
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          # Force the ASG to refresh instances with the new image
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name starttech-backend \
+            --preferences '{"MinHealthyPercentage": 50}'
