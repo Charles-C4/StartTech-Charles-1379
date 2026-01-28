@@ -6,6 +6,8 @@ on:
     # Only trigger when files in the backend folder change
     paths:
       - 'backend/**' 
+  workflow_dispatch: # This is the magic line that adds the manual button
+
 
 jobs:
   build-and-push:
