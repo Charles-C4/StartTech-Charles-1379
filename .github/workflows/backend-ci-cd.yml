@@ -5,9 +5,8 @@ on:
     branches: [ "main" ]
     # Only trigger when files in the backend folder change
     paths:
-      - 'backend/**' 
-  workflow_dispatch: # This is the magic line that adds the manual button
-
+      - 'backend/**'
+  workflow_dispatch: # Allows you to run this manually from the Actions tab
 
 jobs:
   build-and-push:
@@ -33,19 +32,23 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: latest
         run: |
-          # Pointing to the backend subdirectory for the build context
+          # Build using the backend folder as context
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           
-          # Force the ASG to refresh instances with the new image
-          aws autoscaling start-instance-refresh \
-            --auto-scaling-group-name starttech-backend \
-            --preferences '{"MinHealthyPercentage": 50}'
-
-          ASG_NAME=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, 'starttech-backend')].AutoScalingGroupName" --output text)
+          # Dynamically find the ASG name to avoid "name not found" errors
+          ASG_NAME=$(aws autoscaling describe-auto-scaling-groups \
+            --query "AutoScalingGroups[?contains(AutoScalingGroupName, 'starttech-backend')].AutoScalingGroupName" \
+            --output text)
           
           echo "Found ASG: $ASG_NAME"
           
-          aws autoscaling start-instance-refresh \
-            --auto-scaling-group-name "$ASG_NAME" \
-            --preferences '{"MinHealthyPercentage": 50}'
+          # Trigger the rolling update
+          if [ "$ASG_NAME" != "None" ] && [ -n "$ASG_NAME" ]; then
+            aws autoscaling start-instance-refresh \
+              --auto-scaling-group-name "$ASG_NAME" \
+              --preferences '{"MinHealthyPercentage": 50}'
+          else
+            echo "Error: Could not find an Auto Scaling Group with 'starttech-backend' in the name."
+            exit 1
+          fi
