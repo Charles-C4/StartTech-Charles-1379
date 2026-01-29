@@ -1,0 +1,15 @@
+{
+    "Alarms": [
+        {
+            "AlarmName": "High-CPU-Utilization-Backend",
+            "MetricName": "CPUUtilization",
+            "Namespace": "AWS/EC2",
+            "Statistic": "Average",
+            "Threshold": 80.0,
+            "ComparisonOperator": "GreaterThanThreshold",
+            "EvaluationPeriods": 2,
+            "Period": 300,
+            "AlarmDescription": "Alarm when CPU exceeds 80% for 10 minutes"
+        }
+    ]
+}
