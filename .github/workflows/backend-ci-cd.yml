@@ -31,24 +31,19 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: latest
+          # We use the exact name from your secret to avoid search errors
+          ASG_NAME: ${{ secrets.ASG_NAME }}
         run: |
-          # Build using the backend folder as context
+          # 1. Build using the backend folder as context
+          # Note the dot at the end of the context path
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          
+          # 2. Push to your new AWS account's ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           
-          # Dynamically find the ASG name to avoid "name not found" errors
-          ASG_NAME=$(aws autoscaling describe-auto-scaling-groups \
-            --query "AutoScalingGroups[?contains(AutoScalingGroupName, 'starttech-backend')].AutoScalingGroupName" \
-            --output text)
+          echo "Image pushed. Triggering Instance Refresh for: $ASG_NAME"
           
-          echo "Found ASG: $ASG_NAME"
-          
-          # Trigger the rolling update
-          if [ "$ASG_NAME" != "None" ] && [ -n "$ASG_NAME" ]; then
-            aws autoscaling start-instance-refresh \
-              --auto-scaling-group-name "$ASG_NAME" \
-              --preferences '{"MinHealthyPercentage": 50}'
-          else
-            echo "Error: Could not find an Auto Scaling Group with 'starttech-backend' in the name."
-            exit 1
-          fi
+          # 3. Trigger the rolling update on your EC2 instances
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "$ASG_NAME" \
+            --preferences '{"MinHealthyPercentage": 50}'
