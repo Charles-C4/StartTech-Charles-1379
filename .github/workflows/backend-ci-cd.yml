@@ -32,16 +32,16 @@ jobs:
           IMAGE_TAG: latest
           ASG_NAME: ${{ secrets.ASG_NAME }}
         run: |
-          # 1. Build the image. 
-          # The './backend' at the end is the '1 argument' Docker was missing
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          # The quotes around variables prevent shell-splitting errors
+          # The './backend' is the 1 mandatory build context argument
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" ./backend
           
-          # 2. Push to ECR
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # Push the newly tagged image to ECR
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           
-          echo "Image pushed. Starting Instance Refresh for: $ASG_NAME"
+          echo "Build successful. Refreshing Auto Scaling Group: $ASG_NAME"
           
-          # 3. Trigger rolling update
+          # Trigger the rolling update on your instances
           aws autoscaling start-instance-refresh \
             --auto-scaling-group-name "$ASG_NAME" \
             --preferences '{"MinHealthyPercentage": 50}'
