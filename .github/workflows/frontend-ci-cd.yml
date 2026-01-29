@@ -6,6 +6,7 @@ on:
     # Only trigger when files in the frontend folder change
     paths:
       - 'frontend/**'
+  workflow_dispatch: # Added this so you can trigger it manually if needed
 
 jobs:
   build-and-deploy:
@@ -38,11 +39,16 @@ jobs:
           AWS_REGION: 'us-east-1'
           SOURCE_DIR: 'frontend/dist'
 
-      # New Step: Clear CloudFront Cache
+      # New Step: Clear CloudFront Cache with sanitized ID
       - name: Invalidate CloudFront
         run: |
+          # Strip any hidden newlines or spaces from the secret
+          CLEAN_ID=$(echo "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" | tr -d '\n' | tr -d '\r' | tr -d ' ')
+          
+          echo "Invalidating CloudFront Distribution: $CLEAN_ID"
+          
           aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --distribution-id "$CLEAN_ID" \
             --paths "/*"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
